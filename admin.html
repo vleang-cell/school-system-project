@@ -10,6 +10,7 @@
         body {
             background-color: #e9ecef; /* Lighter background */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 0; /* Remove body padding as content handles it */
         }
         .sidebar {
             background-color: #343a40; /* Darker sidebar */
@@ -17,6 +18,10 @@
             height: 100vh;
             padding-top: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,.1);
+            position: fixed; /* Fix sidebar position */
+            left: 0;
+            top: 0;
+            z-index: 1000; /* Ensure sidebar is on top */
         }
         .sidebar a {
             color: #adb5bd; /* Lighter text for links */
@@ -38,7 +43,23 @@
         }
         .content {
             padding: 30px;
+            margin-left: 25%; /* Adjust content margin to account for fixed sidebar */
+            width: 75%; /* Ensure content takes remaining width */
         }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative; /* Unfix sidebar on smaller screens */
+                height: auto;
+                width: 100%;
+                box-shadow: none;
+                padding-bottom: 0; /* Adjust padding */
+            }
+            .content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+
         .card {
             border: none;
             border-radius: 10px;
@@ -51,6 +72,55 @@
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
             font-weight: bold;
+            display: flex; /* For aligning title and buttons */
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+        }
+        .card-header h3 {
+            margin-bottom: 0;
+            color: white;
+        }
+
+        /* Modal Specific Styles */
+        .modal-header {
+            background-color: #007bff; /* Primary blue for modal headers */
+            color: white;
+            border-bottom: none;
+            border-top-left-radius: calc(.5rem - 1px);
+            border-top-right-radius: calc(.5rem - 1px);
+        }
+        .modal-header.bg-danger {
+            background-color: #dc3545 !important;
+        }
+        .modal-header.bg-warning {
+            background-color: #ffc107 !important;
+        }
+        .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%); /* Make close button white */
+        }
+        .input-control label {
+            font-weight: 500;
+            margin-bottom: .25rem;
+        }
+        .input-control .error {
+            font-size: 0.875em;
+            color: #dc3545; /* Bootstrap danger color */
+            margin-top: .25rem;
+        }
+        .input-control input.is-invalid, .input-control select.is-invalid {
+            border-color: #dc3545;
+        }
+        .input-control input.is-valid, .input-control select.is-valid {
+            border-color: #28a745;
+        }
+        .table thead th {
+            background-color: #007bff;
+            color: white;
+            vertical-align: middle;
+        }
+        .table tbody tr:hover {
+            background-color: #f1f1f1;
         }
     </style>
 </head>
@@ -61,7 +131,7 @@
         <div class="col-md-3 sidebar">
             <h4 class="text-center mb-4 text-white">Admin Panel</h4>
             <a href="#" onclick="loadAdminSection('users')"><i class="fas fa-users"></i> Manage Users</a>
-            <a href="#" onclick="loadAdminSection('subjects')"><i class="fas fa-book-open"></i> Assign Subjects</a>
+            <a href="#" onclick="loadAdminSection('students')"><i class="fas fa-user-graduate"></i> Manage Students</a> <a href="#" onclick="loadAdminSection('subjects')"><i class="fas fa-book-open"></i> Assign Subjects</a>
             <a href="#" onclick="loadAdminSection('timetable')"><i class="fas fa-calendar-alt"></i> Create Timetable</a>
             <a href="#" onclick="loadAdminSection('leave')"><i class="fas fa-plane-departure"></i> Approve Leave Requests</a>
             <a href="#" onclick="loadAdminSection('attendance')"><i class="fas fa-chart-bar"></i> Attendance Summary</a>
@@ -84,8 +154,137 @@
     </div>
 </div>
 
+<div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createModalLabel"><i class="fas fa-user-plus me-2"></i>Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createForm">
+                    <div class="mb-3 input-control">
+                        <label for="C_StudentCode" class="form-label">Student Code</label>
+                        <input type="number" class="form-control" id="C_StudentCode" placeholder="Enter student code" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div class="mb-3 input-control">
+                        <label for="C_StudentName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="C_StudentName" placeholder="Enter student name" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div class="mb-3 input-control">
+                        <label for="C_StudentSex" class="form-label">Sex</label>
+                        <input type="text" class="form-control" id="C_StudentSex" placeholder="Enter Sex (e.g., Male/Female)" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div id="C_Msg" class="text-danger mt-2"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="BtCreateClear" type="button" class="btn btn-secondary">
+                    <i class="fas fa-eraser me-1"></i> Clear
+                </button>
+                <button id="BtCreateYes" type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger">
+                <h4 class="modal-title" id="deleteModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this student record? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times-circle me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="BtDeleteYes" data-bs-dismiss="modal">
+                    <i class="fas fa-trash-alt me-1"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h4 class="modal-title" id="editModalLabel"><i class="fas fa-edit me-2"></i>Edit Student Information</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="mb-3 input-control">
+                        <label for="E_StudentId" class="form-label">Student ID</label>
+                        <input id="E_StudentId" name="E_StudentId" type="text" class="form-control" disabled />
+                    </div>
+                    <div class="mb-3 input-control">
+                        <label for="E_StudentCode" class="form-label">Student Code</label>
+                        <input id="E_StudentCode" name="E_StudentCode" type="text" class="form-control" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div class="mb-3 input-control">
+                        <label for="E_Name" class="form-label">Student Name</label>
+                        <input id="E_Name" name="E_Name" type="text" class="form-control" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div class="mb-3 input-control">
+                        <label for="E_Sex" class="form-label">Sex</label>
+                        <input id="E_Sex" name="E_Sex" type="text" class="form-control" />
+                        <div class="error text-danger mt-1"></div>
+                    </div>
+                    <div id="E_Msg" class="text-danger text-center mt-3"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="BtClearYes" type="button" class="btn btn-secondary">
+                    <i class="fas fa-eraser me-1"></i> Clear
+                </button>
+                <button id="BtEditYes" type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 <script>
+    // Helper functions for API calls and validation (kept global for easier access across sections)
+    function buildUrl(baseUrl, params) {
+        const url = new URL(baseUrl);
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        return url;
+    }
+
+    function setError(element, message) {
+        const inputControl = element.parentElement;
+        const errorDisplay = inputControl.querySelector('.error');
+        errorDisplay.innerText = message;
+        element.classList.add('is-invalid');
+        element.classList.remove('is-valid');
+    }
+
+    function setSuccess(element) {
+        const inputControl = element.parentElement;
+        const errorDisplay = inputControl.querySelector('.error');
+        errorDisplay.innerText = '';
+        element.classList.remove('is-invalid');
+        element.classList.add('is-valid');
+    }
+
+    // --- Core Admin Dashboard Functionality ---
     function loadAdminSection(section) {
         const content = {
             users: `
@@ -132,17 +331,42 @@
                                             <button class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> Delete</button>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>101</td>
-                                        <td>John Doe</td>
-                                        <td>Student</td>
-                                        <td>john@example.com</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-info me-1"><i class="fas fa-edit"></i> Edit</button>
-                                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> Delete</button>
-                                        </td>
-                                    </tr>
                                 </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `,
+            students: `
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-graduate me-2"></i>Student List</h3>
+                        <div>
+                            <button type="button" class="btn btn-success me-2" onclick="Create_Fn()">
+                                <i class="fas fa-plus-circle me-1"></i> Add Student
+                            </button>
+                            <a href="class.html">
+                                <button type="button" class="btn btn-light"><i class="fas fa-chalkboard me-1"></i> Go to Class</button>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="myTable" class="table table-bordered table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">No</th>
+                                        <th class="text-center">ID</th>
+                                        <th class="text-center">Code</th>
+                                        <th class="text-center">Name</th>
+                                        <th class="text-center">Sex</th>
+                                        <th class="text-center">Register Date</th>
+                                        <th class="text-center">Delete</th>
+                                        <th class="text-center">Edit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -209,13 +433,6 @@
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 Ms. Dara - Personal Leave (June 10)
-                                <span>
-                                    <button class="btn btn-success btn-sm me-1"><i class="fas fa-check"></i> Approve</button>
-                                    <button class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Reject</button>
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Mr. Vuth - Vacation Leave (June 15-20)
                                 <span>
                                     <button class="btn btn-success btn-sm me-1"><i class="fas fa-check"></i> Approve</button>
                                     <button class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Reject</button>
@@ -300,7 +517,320 @@
                 </div>
             </div>
         `;
+
+        // If the 'students' section is loaded, immediately load its data
+        if (section === 'students') {
+            LoadTableArea();
+        }
     }
+
+    // --- Student Management Specific JavaScript Functions ---
+
+    function LoadTableArea() {
+        const apiUrl = "http://cpnsport.net/api/Student";
+        fetch(apiUrl)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((userData) => {
+                TableLoad(userData);
+            })
+            .catch((error) => {
+                console.error("Error fetching student data:", error);
+                const tbody = document.getElementById("myTable") ? document.getElementById("myTable").getElementsByTagName("tbody")[0] : null;
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center text-danger">Failed to load student data. Please try again later.</td>
+                        </tr>
+                    `;
+                }
+            });
+    }
+
+    function TableLoad(JSONList) {
+        let myTable = document.getElementById("myTable");
+        if (!myTable) return; // Exit if table doesn't exist
+        let tbody = myTable.getElementsByTagName("tbody")[0];
+        tbody.innerHTML = ""; // Clear existing rows
+        var i = 0;
+        if (JSONList && JSONList.length > 0) {
+            JSONList.forEach(function (arrayItem) {
+                i++;
+                let row = tbody.insertRow();
+                row.insertCell(0).innerHTML = i;
+                row.insertCell(1).innerHTML = arrayItem.StudentId;
+                row.insertCell(2).innerHTML = arrayItem.StudentCode;
+                row.insertCell(3).innerHTML = arrayItem.Name;
+                row.insertCell(4).innerHTML = arrayItem.Sex;
+                row.insertCell(5).innerHTML = moment(arrayItem.CreateDate).format("DD-MMM-YYYY");
+
+                let deleteCell = row.insertCell(6);
+                deleteCell.className = "text-center";
+                deleteCell.innerHTML = `<button type='button' class='btn btn-danger btn-sm' onclick='Delete_Fn(${arrayItem.StudentId})'><i class="fas fa-trash-alt"></i> Delete</button>`;
+
+                let editCell = row.insertCell(7);
+                editCell.className = "text-center";
+                editCell.innerHTML = `<button type='button' class='btn btn-primary btn-sm' onclick='Edit_Fn(${arrayItem.StudentId})'><i class="fas fa-edit"></i> Edit</button>`;
+            });
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted">No student records found. Add a new student!</td>
+                </tr>
+            `;
+        }
+    }
+
+    function Delete_Fn(StudentId) {
+        document.getElementById("BtDeleteYes").value = StudentId;
+        let modal = new bootstrap.Modal(document.getElementById("deleteModal"));
+        modal.show();
+    }
+
+    function Create_Fn() {
+        LoadCreateForm();
+        document.getElementById("C_Msg").innerHTML = "";
+        let modal = new bootstrap.Modal(document.getElementById("createModal"));
+        modal.show();
+    }
+
+    function Edit_Fn(StudentId) {
+        const Parameters = { id: StudentId };
+        const apiUrl = "http://cpnsport.net/api/Student";
+        fetch(buildUrl(apiUrl, Parameters), {
+            method: "GET",
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((userData) => {
+                LoadE_Form(userData);
+            })
+            .catch((error) => {
+                console.error("Error fetching student data for edit:", error);
+                document.getElementById("E_Msg").innerHTML = "Error loading data for edit. Please try again.";
+            });
+
+        document.getElementById("BtEditYes").value = StudentId;
+        document.getElementById("E_Msg").innerHTML = "";
+        let modal = new bootstrap.Modal(document.getElementById("editModal"));
+        modal.show();
+    }
+
+    // Event Listeners for modals (attached to the document to handle dynamic content)
+    document.addEventListener('click', function(event) {
+        if (event.target && event.target.id === 'BtDeleteYes') {
+            const StudentId = event.target.value;
+            const apiUrl = "http://cpnsport.net/api/Student";
+            const Parameters = { Id: StudentId };
+
+            fetch(buildUrl(apiUrl, Parameters), {
+                method: "delete",
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                const R_Message = data.message ? data.message : "Operation successful.";
+                if (R_Message.includes("Successfully")) {
+                    LoadTableArea();
+                    bootstrap.Modal.getInstance(document.getElementById("deleteModal")).hide();
+                } else {
+                    alert(`Delete failed: ${R_Message}`);
+                }
+            })
+            .catch(error => {
+                console.error("Error during delete:", error);
+                alert(`An error occurred while deleting the record: ${error.message}`);
+            });
+        }
+
+        if (event.target && event.target.id === 'BtCreateClear') {
+            LoadCreateForm();
+        }
+
+        if (event.target && event.target.id === 'BtCreateYes') {
+            if (validateInputs('create')) {
+                const apiUrl = "http://cpnsport.net/api/Student";
+                const Parameters = {
+                    StudentCode: document.getElementById("C_StudentCode").value,
+                    Name: document.getElementById("C_StudentName").value,
+                    Sex: document.getElementById("C_StudentSex").value,
+                };
+                fetch(buildUrl(apiUrl, Parameters), {
+                    method: "POST",
+                })
+                .then((response) => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    document.getElementById("C_Msg").innerHTML = data.message ? data.message : "Successfully saved.";
+                    if (data.message && data.message.startsWith("Successfully")) {
+                        LoadTableArea();
+                        bootstrap.Modal.getInstance(document.getElementById("createModal")).hide();
+                    }
+                })
+                .catch(error => {
+                    console.error("Error during create:", error);
+                    document.getElementById("C_Msg").innerHTML = `Error: ${error.message}`;
+                });
+            } else {
+                document.getElementById("C_Msg").innerHTML = "Warning! Please correct the invalid input(s).";
+            }
+        }
+
+        if (event.target && event.target.id === 'BtClearYes') {
+            LoadE_Clear();
+        }
+
+        if (event.target && event.target.id === 'BtEditYes') {
+            const StudentId = event.target.value;
+            if (validateInputs('edit')) {
+                const apiUrl = "http://cpnsport.net/api/Student";
+                var Parameters = {
+                    StudentId: StudentId,
+                    StudentCode: document.getElementById("E_StudentCode").value,
+                    Name: document.getElementById("E_Name").value,
+                    Sex: document.getElementById("E_Sex").value,
+                };
+                fetch(buildUrl(apiUrl, Parameters), {
+                    method: "PUT",
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById("E_Msg").innerHTML = data.message ? data.message : "Successfully updated.";
+                    const R_Message = data.message ? data.message : "";
+                    if (R_Message.slice(0, 12) === "Successfully") {
+                        LoadTableArea();
+                        bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+                    }
+                })
+                .catch(error => {
+                    console.error("Error during edit:", error);
+                    document.getElementById("E_Msg").innerHTML = `Error: ${error.message}`;
+                });
+            } else {
+                document.getElementById("E_Msg").innerHTML = "Warning! Please correct the invalid input(s).";
+            }
+        }
+    });
+
+    function LoadE_Clear() {
+        document.getElementById("E_StudentCode").value = "";
+        document.getElementById("E_Name").value = "";
+        document.getElementById("E_Sex").value = "";
+        setSuccess(document.getElementById("E_StudentCode"));
+        setSuccess(document.getElementById("E_Name"));
+        setSuccess(document.getElementById("E_Sex"));
+    }
+
+    function LoadE_Form(JSONObj) {
+        document.getElementById("E_StudentId").value = JSONObj.StudentId;
+        document.getElementById("E_StudentCode").value = JSONObj.StudentCode;
+        document.getElementById("E_Name").value = JSONObj.Name;
+        document.getElementById("E_Sex").value = JSONObj.Sex;
+        setSuccess(document.getElementById("E_StudentCode"));
+        setSuccess(document.getElementById("E_Name"));
+        setSuccess(document.getElementById("E_Sex"));
+    }
+
+    function LoadCreateForm() {
+        document.getElementById("C_StudentCode").value = "";
+        document.getElementById("C_StudentName").value = "";
+        document.getElementById("C_StudentSex").value = "";
+        setSuccess(document.getElementById("C_StudentCode"));
+        setSuccess(document.getElementById("C_StudentName"));
+        setSuccess(document.getElementById("C_StudentSex"));
+    }
+
+    const validateInputs = (formType) => {
+        let isValid = true;
+
+        if (formType === 'edit') {
+            const StudentCode = document.getElementById("E_StudentCode");
+            const Name = document.getElementById("E_Name");
+            const Sex = document.getElementById("E_Sex");
+
+            const StudentCodeValue = StudentCode.value.trim();
+            const StudentNameValue = Name.value.trim();
+            const StudentSexValue = Sex.value.trim();
+
+            if (StudentCodeValue === "") {
+                setError(StudentCode, "Student Code is required.");
+                isValid = false;
+            } else {
+                setSuccess(StudentCode);
+            }
+
+            if (StudentNameValue === "") {
+                setError(Name, "Student Name is required.");
+                isValid = false;
+            } else if (StudentNameValue.length < 3) {
+                setError(Name, "Student Name must be at least 3 characters.");
+                isValid = false;
+            } else {
+                setSuccess(Name);
+            }
+
+            if (StudentSexValue === "") {
+                setError(Sex, "Sex is required.");
+                isValid = false;
+            } else {
+                setSuccess(Sex);
+            }
+        } else if (formType === 'create') {
+            const CStudentCode = document.getElementById("C_StudentCode");
+            const CStudentName = document.getElementById("C_StudentName");
+            const CStudentSex = document.getElementById("C_StudentSex");
+
+            const CStudentCodeValue = CStudentCode.value.trim();
+            const CStudentNameValue = CStudentName.value.trim();
+            const CStudentSexValue = CStudentSex.value.trim();
+
+            if (CStudentCodeValue === "") {
+                setError(CStudentCode, "Student Code is required.");
+                isValid = false;
+            } else {
+                setSuccess(CStudentCode);
+            }
+
+            if (CStudentNameValue === "") {
+                setError(CStudentName, "Student Name is required.");
+                isValid = false;
+            } else if (CStudentNameValue.length < 3) {
+                setError(CStudentName, "Student Name must be at least 3 characters.");
+                isValid = false;
+            } else {
+                setSuccess(CStudentName);
+            }
+
+            if (CStudentSexValue === "") {
+                setError(CStudentSex, "Sex is required.");
+                isValid = false;
+            } else {
+                setSuccess(CStudentSex);
+            }
+        }
+        return isValid;
+    };
 </script>
 
 </body>
